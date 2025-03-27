@@ -208,9 +208,9 @@ show_logs() {
     fi
     cd "$HOME/rl-swarm" || { echo -e "${RED}Не удалось перейти в директорию $HOME/rl-swarm!${NC}" >&2; return 1; }
     set_dc_command
-    # Показываем последние 100 строк логов в реальном времени
-    $DC logs --tail 100 -f node
-    # После Ctrl+C автоматически возвращаемся в меню (за счёт структуры main_menu)
+    # Запускаем логи с tail в реальном времени
+    trap 'echo -e "${BLUE}Возвращаемся в меню...${NC}" >&2; return' INT
+    $DC logs -f node | tail -n 100
 }
 
 # Функция перезапуска узла
