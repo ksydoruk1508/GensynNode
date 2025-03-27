@@ -200,17 +200,14 @@ update_node() {
 
 # Функция просмотра логов
 show_logs() {
-    echo -e "${BLUE}Просмотр логов узла Gensyn (последние 100 строк в реальном времени)...${NC}" >&2
-    echo -e "${YELLOW}Нажмите Ctrl+C для возврата в меню${NC}" >&2
+    echo -e "\n${clrBold}${clrBlue}--- Просмотр логов узла ---${clrReset}\n"
     if [ ! -d "$HOME/rl-swarm" ]; then
-        echo -e "${RED}Папка узла не найдена. Сначала запустите узел.${NC}" >&2
-        return 1
+        print_error "Папка узла не найдена. Сначала запустите узел."
+        return
     fi
-    cd "$HOME/rl-swarm" || { echo -e "${RED}Не удалось перейти в директорию $HOME/rl-swarm!${NC}" >&2; return 1; }
+    cd "$HOME/rl-swarm" || return
     set_dc_command
-    # Запускаем логи с tail в реальном времени
-    trap 'echo -e "${BLUE}Возвращаемся в меню...${NC}" >&2; return' INT
-    $DC logs -f node | tail -n 100
+    $DC logs node
 }
 
 # Функция перезапуска узла
