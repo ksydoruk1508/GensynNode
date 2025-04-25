@@ -134,8 +134,8 @@ download_node() {
     fi
 
     # Очистка старого screen
-    if screen -list | grep -q "gensynnode"; then
-        screen -ls | grep gensynnode | awk '{print $1}' | cut -d'.' -f1 | xargs kill
+    if screen -list | grep -q "gensyn"; then
+        screen -ls | grep gensyn | awk '{print $1}' | cut -d'.' -f1 | xargs kill
     fi
 
     echo "Следуйте дальнейшим инструкциям в гайде."
@@ -146,26 +146,26 @@ launch_node() {
     cd "$HOME/rl-swarm" || exit 1
     source .venv/bin/activate
 
-    if screen -list | grep -q "gensynnode"; then
-        screen -ls | grep gensynnode | awk '{print $1}' | cut -d'.' -f1 | xargs kill
+    if screen -list | grep -q "gensyn"; then
+        screen -ls | grep gensyn | awk '{print $1}' | cut -d'.' -f1 | xargs kill
     fi
 
-    screen -S gensynnode -d -m bash -c "trap '' INT; bash run_rl_swarm.sh 2>&1 | tee $HOME/rl-swarm/gensynnode.log"
-    echo "Нода запущена в screen 'gensynnode'."
+    screen -S gensyn -d -m bash -c "trap '' INT; bash run_rl_swarm.sh 2>&1 | tee $HOME/rl-swarm/gensyn.log"
+    echo "Нода запущена в screen 'gensyn'."
 }
 
 # Функция просмотра логов
 watch_logs() {
     echo "Просмотр логов (Ctrl+C для возврата в меню)..."
     trap 'echo -e "\nВозврат в меню..."; return' SIGINT
-    tail -n 100 -f "$HOME/rl-swarm/gensynnode.log"
+    tail -n 100 -f "$HOME/rl-swarm/gensyn.log"
 }
 
 # Функция перехода в screen
 go_to_screen() {
     echo "Выходите из screen через Ctrl+A + D"
     sleep 2
-    screen -r gensynnode
+    screen -r gensyn
 }
 
 # Функция запуска локального сервера
@@ -196,8 +196,8 @@ userapikey() {
 
 # Функция остановки ноды
 stop_node() {
-    if screen -list | grep -q "gensynnode"; then
-        screen -ls | grep gensynnode | awk '{print $1}' | cut -d'.' -f1 | xargs kill
+    if screen -list | grep -q "gensyn"; then
+        screen -ls | grep gensyn | awk '{print $1}' | cut -d'.' -f1 | xargs kill
     fi
 
     local pid
