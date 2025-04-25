@@ -236,7 +236,7 @@ main_menu() {
     while true; do
         channel_logo
         sleep 2
-        echo -e  "${YELLOW} Меню:${NC}"
+        echo -e  "${YELLOW}Выберите действие:${NC}"
         echo -e "${CYAN}1. Установить ноду${NC}"
         echo -e "${CYAN}2. Запустить ноду${NC}"
         echo -e "${CYAN}3. Посмотреть логи${NC}"
@@ -249,7 +249,7 @@ main_menu() {
         echo -e "${CYAN}10. Обновить ноду${NC}"
         echo -e "${CYAN}11. Выйти из скрипта${NC}"
         echo -e " "
-        read -p "Выберите пункт меню: " choice
+        read -p "Введите номер: " choice
 
         case "$choice" in
             1) download_node ;;
