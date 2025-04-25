@@ -39,6 +39,10 @@ EOF
     echo -e "${NC}"
 }
 
+EOF
+    echo -e "${NC}"
+}
+
 # Проверка наличия curl и его установка, если отсутствует
 check_curl() {
     if ! command -v curl &> /dev/null; then
@@ -213,6 +217,24 @@ delete_node() {
     echo "Нода удалена."
 }
 
+# Функция обновления ноды
+update_node() {
+    echo -e "${BLUE}Начинаю обновление ноды...${NC}"
+    
+    # Остановка существующего screen gensyn
+    pkill -f "SCREEN.*gensyn"
+    
+    # Запуск нового screen и выполнение команд обновления
+    screen -S gensyn -d -m bash -c "
+        cd \$HOME && 
+        rm -rf GensynNode && 
+        git clone https://github.com/ksydoruk1508/GensynNode.git && 
+        chmod +x GensynNode/gensynupdate.sh && 
+        ./GensynNode/gensynupdate.sh 2>&1 | tee \$HOME/gensyn_update.log"
+    
+    echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/gensyn_update.log${NC}"
+}
+
 # Основной цикл меню
 main_menu() {
     while true; do
@@ -228,7 +250,8 @@ main_menu() {
         echo "7. Показать API ключ пользователя"
         echo "8. Остановить ноду"
         echo "9. Удалить ноду"
-        echo "10. Выйти из скрипта"
+        echo "10. Обновить ноду"
+        echo "11. Выйти из скрипта"
         read -p "Выберите пункт меню: " choice
 
         case "$choice" in
@@ -241,8 +264,9 @@ main_menu() {
             7) userapikey ;;
             8) stop_node ;;
             9) delete_node ;;
-            10) exit 0 ;;
-            *) echo "Неверный выбор. Введите число от 1 до 10." ;;
+            10) update_node ;;
+            11) exit 0 ;;
+            *) echo "Неверный выбор. Введите число от 1 до 11." ;;
         esac
     done
 }
