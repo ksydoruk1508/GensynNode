@@ -248,7 +248,8 @@ main_menu() {
         echo -e "${CYAN}9. Удалить ноду${NC}"
         echo -e "${CYAN}10. Обновить ноду${NC}"
         echo -e "${CYAN}11. Выйти из скрипта${NC}"
-        read -p "${YELLOW}Выберите пункт меню: ${NC}" choice
+        echo -e " "
+        read -p "Выберите пункт меню: " choice
 
         case "$choice" in
             1) download_node ;;
