@@ -236,19 +236,19 @@ main_menu() {
     while true; do
         channel_logo
         sleep 2
-        echo -e "\n\nМеню:"
-        echo "1. Установить ноду"
-        echo "2. Запустить ноду"
-        echo "3. Посмотреть логи"
-        echo "4. Перейти в screen ноды"
-        echo "5. Запустить локальный сервер"
-        echo "6. Показать данные пользователя"
-        echo "7. Показать API ключ пользователя"
-        echo "8. Остановить ноду"
-        echo "9. Удалить ноду"
-        echo "10. Обновить ноду"
-        echo "11. Выйти из скрипта"
-        read -p "Выберите пункт меню: " choice
+        echo -e  "${YELLOW} Меню:${NC}"
+        echo "${CYAN}1. Установить ноду${NC}"
+        echo "${CYAN}2. Запустить ноду${NC}"
+        echo "${CYAN}3. Посмотреть логи${NC}"
+        echo "${CYAN}4. Перейти в screen ноды${NC}"
+        echo "${CYAN}5. Запустить локальный сервер${NC}"
+        echo "${CYAN}6. Показать данные пользователя${NC}"
+        echo "${CYAN}7. Показать API ключ пользователя${NC}"
+        echo "${CYAN}8. Остановить ноду${NC}"
+        echo "${CYAN}9. Удалить ноду${NC}"
+        echo "${CYAN}10. Обновить ноду${NC}"
+        echo "${CYAN}11. Выйти из скрипта${NC}"
+        read -p "${YELLOW}Выберите пункт меню: ${NC}" choice
 
         case "$choice" in
             1) download_node ;;
