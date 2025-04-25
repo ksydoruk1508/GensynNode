@@ -39,10 +39,6 @@ EOF
     echo -e "${NC}"
 }
 
-EOF
-    echo -e "${NC}"
-}
-
 # Проверка наличия curl и его установка, если отсутствует
 check_curl() {
     if ! command -v curl &> /dev/null; then
