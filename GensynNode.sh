@@ -143,6 +143,12 @@ download_node() {
 
 # Функция запуска ноды
 launch_node() {
+    # Создаем директорию, если она отсутствует
+    mkdir -p "$HOME/rl-swarm"
+    # Создаем или очищаем лог-файл
+    touch "$HOME/rl-swarm/gensyn.log"
+    : > "$HOME/rl-swarm/gensyn.log"
+
     cd "$HOME/rl-swarm" || exit 1
     source .venv/bin/activate
 
@@ -217,6 +223,12 @@ delete_node() {
 update_node() {
     echo -e "${BLUE}Начинаю обновление ноды...${NC}"
     
+    # Создаем директорию, если она отсутствует
+    mkdir -p "$HOME/rl-swarm"
+    # Создаем или очищаем лог-файл
+    touch "$HOME/rl-swarm/gensyn.log"
+    : > "$HOME/rl-swarm/gensyn.log"
+    
     # Остановка существующего screen gensyn
     pkill -f "SCREEN.*gensyn"
     
@@ -226,9 +238,9 @@ update_node() {
         rm -rf GensynNode && 
         git clone https://github.com/ksydoruk1508/GensynNode.git && 
         chmod +x GensynNode/gensynupdate.sh && 
-        ./GensynNode/gensynupdate.sh 2>&1 | tee \$HOME/gensyn_update.log"
+        ./GensynNode/gensynupdate.sh 2>&1 | tee \$HOME/rl-swarm/gensyn.log"
     
-    echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/gensyn_update.log${NC}"
+    echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/rl-swarm/gensyn.log${NC}"
 }
 
 # Основной цикл меню
