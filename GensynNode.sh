@@ -249,7 +249,7 @@ main_menu() {
         channel_logo
         sleep 2
         echo -e  "${YELLOW}Выберите действие:${NC}"
-        echo -e "${CYAN}1. Установить ноду${NC}"
+        echo -e "${CYAN}1. Установить ноду (v. 0.4.2)${NC}"
         echo -e "${CYAN}2. Запустить ноду${NC}"
         echo -e "${CYAN}3. Посмотреть логи${NC}"
         echo -e "${CYAN}4. Перейти в screen ноды${NC}"
@@ -258,7 +258,7 @@ main_menu() {
         echo -e "${CYAN}7. Показать API ключ пользователя${NC}"
         echo -e "${CYAN}8. Остановить ноду${NC}"
         echo -e "${CYAN}9. Удалить ноду${NC}"
-        echo -e "${CYAN}10. Обновить ноду${NC}"
+        echo -e "${CYAN}10. Обновить ноду (v. 0.4.2)${NC}"
         echo -e "${CYAN}11. Выйти из скрипта${NC}"
         echo -e " "
         read -p "Введите номер: " choice
