@@ -245,26 +245,41 @@ update_node() {
     # Остановка существующего screen gensyn
     pkill -f "SCREEN.*gensyn"
     
+    # Проверка существования виртуального окружения
+    if [ ! -d "$HOME/rl-swarm/.venv" ]; then
+        echo -e "${RED}Виртуальное окружение $HOME/rl-swarm/.venv не найдено. Пожалуйста, сначала установите ноду (опция 1).${NC}"
+        return 1
+    fi
+
     # Запуск нового screen и выполнение команд обновления
     screen -S gensyn -d -m bash -c "
-        cd \$HOME && 
-        rm -rf GensynNode && 
-        git clone https://github.com/zunxbt/rl-swarm.git && 
-        cd \$HOME/rl-swarm && 
-        source .venv/bin/activate && 
-        pip install hivemind==1.1.11 && 
-        PYTHON_VERSION=\$(python3 --version | grep -oP '\d+\.\d+' | head -1) && 
-        TRAINER_PY=\"/root/rl-swarm/.venv/lib/python\${PYTHON_VERSION}/site-packages/transformers/trainer.py\" && 
-        if [ -f \"\$TRAINER_PY\" ]; then 
+        set -e
+        echo 'Начало обновления...' >> \$HOME/rl-swarm/gensyn.log
+        cd \$HOME || { echo 'Ошибка: не удалось перейти в \$HOME' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
+        rm -rf GensynNode && echo 'Удалена старая директория GensynNode' >> \$HOME/rl-swarm/gensyn.log
+        git clone https://github.com/ksydoruk1508/GensynNode.git || { echo 'Ошибка клонирования репозитория GensynNode' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
+        cd \$HOME/rl-swarm || { echo 'Ошибка: не удалось перейти в \$HOME/rl-swarm' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
+        source .venv/bin/activate || { echo 'Ошибка активации виртуального окружения' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
+        pip install hivemind==1.1.11 >> \$HOME/rl-swarm/gensyn.log 2>&1 || { echo 'Ошибка установки hivemind==1.1.11' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
+        PYTHON_VERSION=\$(python3 --version | grep -oP '\d+\.\d+' | head -1) && echo 'Версия Python: '\${PYTHON_VERSION} >> \$HOME/rl-swarm/gensyn.log
+        TRAINER_PY=\"/root/rl-swarm/.venv/lib/python\${PYTHON_VERSION}/site-packages/transformers/trainer.py\"
+        if [ -f \"\$TRAINER_PY\" ]; then
             sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('\''cpu'\'', /g' \"\$TRAINER_PY\" && 
-            echo 'Замена в trainer.py выполнена для Python '\${PYTHON_VERSION}'.' || 
-            echo 'Ошибка при замене в trainer.py'; 
-        else 
-            echo 'Файл '\$TRAINER_PY' не найден. Проверьте установку transformers.'; 
-        fi && 
-        cd \$HOME/GensynNode && 
-        chmod +x gensynupdate.sh && 
-        ./gensynupdate.sh 2>&1 | tee \$HOME/rl-swarm/gensyn.log"
+            echo 'Замена в trainer.py выполнена для Python '\${PYTHON_VERSION}'.' >> \$HOME/rl-swarm/gensyn.log || 
+            echo 'Ошибка при замене в trainer.py' >> \$HOME/rl-swarm/gensyn.log
+        else
+            echo 'Файл '\$TRAINER_PY' не найден. Проверьте установку transformers.' >> \$HOME/rl-swarm/gensyn.log
+        fi
+        cd \$HOME/GensynNode || { echo 'Ошибка: не удалось перейти в \$HOME/GensynNode' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
+        if [ -f gensynupdate.sh ]; then
+            chmod +x gensynupdate.sh
+            ./gensynupdate.sh >> \$HOME/rl-swarm/gensyn.log 2>&1 || { echo 'Ошибка выполнения gensynupdate.sh' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
+        else
+            echo 'Файл gensynupdate.sh не найден в \$HOME/GensynNode' >> \$HOME/rl-swarm/gensyn.log
+            exit 1
+        fi
+        echo 'Обновление завершено.' >> \$HOME/rl-swarm/gensyn.log
+        bash"
     
     echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/rl-swarm/gensyn.log${NC}"
 }
