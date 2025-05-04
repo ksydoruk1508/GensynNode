@@ -265,19 +265,50 @@ fix_future_warning() {
     launch_node
 }
 
+# Функция исправления SyntaxError: duplicate argument 'bootstrap_timeout'
+fix_bootstrap_timeout() {
+    echo -e "${BLUE}Устраняю ошибку SyntaxError: duplicate argument 'bootstrap_timeout'...${NC}"
+
+    # Остановка ноды
+    echo -e "${YELLOW}Останавливаю ноду...${NC}"
+    stop_node
+
+    # Переход в директорию rl-swarm
+    cd "$HOME/rl-swarm" || { echo -e "${RED}Не удалось войти в директорию rl-swarm. Убедитесь, что нода установлена.${NC}"; return; }
+
+    # Активация виртуальной среды
+    source .venv/bin/activate
+
+    # Установка hivemind==1.1.11
+    echo -e "${YELLOW}Устанавливаю hivemind==1.1.11...${NC}"
+    pip install hivemind==1.1.11
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Установка hivemind==1.1.11 успешно завершена${NC}"
+    else
+        echo -e "${RED}Ошибка при установке hivemind==1.1.11${NC}"
+        return
+    fi
+
+    # Перезапуск ноды
+    echo -e "${YELLOW}Перезапускаю ноду...${NC}"
+    launch_node
+}
+
 # Функция меню устранения неполадок
 troubleshoot_menu() {
     while true; do
         echo -e "${BLUE}Меню устранения неполадок:${NC}"
         echo -e "${CYAN}1. Fix FutureWarning: torch.cpu.amp.autocast(args...) is deprecated${NC}"
-        echo -e "${CYAN}2. Вернуться в главное меню${NC}"
+        echo -e "${CYAN}2. Fix SyntaxError: duplicate argument 'bootstrap_timeout' in function definition${NC}"
+        echo -e "${CYAN}3. Вернуться в главное меню${NC}"
         echo -e " "
         read -p "Введите номер: " choice
 
         case "$choice" in
             1) fix_future_warning ;;
-            2) return ;;
-            *) echo "Неверный выбор. Введите число 1 или 2." ;;
+            2) fix_bootstrap_timeout ;;
+            3) return ;;
+            *) echo "Неверный выбор. Введите число от 1 до 3." ;;
         esac
     done
 }
