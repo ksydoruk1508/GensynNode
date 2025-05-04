@@ -238,16 +238,53 @@ update_node() {
     # Остановка существующего screen gensyn
     pkill -f "SCREEN.*gensyn"
     
-    # Запуск нового screen и выполнение команд обновления
-    screen -S gensyn -d -m bash -c "
-        cd \$HOME && 
-        rm -rf GensynNode && 
-        git clone https://github.com/ksydoruk1508/GensynNode.git && 
-        chmod +x GensynNode/gensynupdate.sh && 
-        ./ venta
-        ./GensynNode/gensynupdate.sh 2>&1 | tee \$HOME/rl-swarm/gensyn.log"
-    
-    echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/rl-swarm/gensyn.log${NC}"
+    # Сохранение существующих файлов swarm.pem, userData.json и userApiKey.json
+    if [ -f "$HOME/rl-swarm/swarm.pem" ]; then
+        cp "$HOME/rl-swarm/swarm.pem" "$HOME/"
+        cp "$HOME/rl-swarm/modal-login/temp-data/userData.json" "$HOME/" 2>/dev/null
+        cp "$HOME/rl-swarm/modal-login/temp-data/userApiKey.json" "$HOME/" 2>/dev/null
+    fi
+
+    # Удаление старой директории и клонирование новой
+    rm -rf "$HOME/rl-swarm"
+    cd "$HOME" && git clone https://github.com/zunxbt/rl-swarm.git > /dev/null 2>&1
+    cd "$HOME/rl-swarm" || { echo -e "${RED}Failed to enter rl-swarm directory. Exiting.${NC}"; exit 1; }
+
+    # Восстановление сохраненных файлов
+    if [ -f "$HOME/swarm.pem" ]; then
+        mv "$HOME/swarm.pem" "$HOME/rl-swarm/"
+        mv "$HOME/userData.json" "$HOME/rl-swarm/modal-login/temp-data/" 2>/dev/null
+        mv "$HOME/userApiKey.json" "$HOME/rl-swarm/modal-login/temp-data/" 2>/dev/null
+    fi
+
+    # Настройка виртуальной среды
+    if [ -n "$VIRTUAL_ENV" ]; then
+        deactivate
+    fi
+    python3 -m venv .venv
+    source .venv/bin/activate
+
+    # Определяем версию Python в виртуальной среде
+    python_version=$(python --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2)
+    site_packages_path="$HOME/rl-swarm/.venv/lib/python${python_version}/site-packages/transformers/trainer.py"
+
+    # Проверяем существование файла trainer.py
+    if [ -f "$site_packages_path" ]; then
+        echo -e "${YELLOW}Найден файл trainer.py для Python ${python_version}. Выполняю замену строки...${NC}"
+        sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('"'"'cpu'"'"', /g' "$site_packages_path"
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}Замена строки успешно выполнена в $site_packages_path${NC}"
+        else
+            echo -e "${RED}Ошибка при выполнении замены строки в $site_packages_path${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${YELLOW}Файл $site_packages_path не найден. Пропускаю замену строки.${NC}"
+    fi
+
+    # Запуск ноды в screen
+    screen -S gensyn -d -m bash -c "trap '' INT; bash run_rl_swarm.sh 2>&1 | tee $HOME/rl-swarm/gensyn.log"
+    echo -e "${GREEN}Обновление завершено. Нода запущена в screen 'gensyn'. Логи доступны в $HOME/rl-swarm/gensyn.log${NC}"
 }
 
 # Основной цикл меню
