@@ -289,9 +289,19 @@ fix_bootstrap_timeout() {
         return
     fi
 
-    # Перезапуск ноды
+    # Очистка существующего screen, если он есть
+    if screen -list | grep -q "gensyn"; then
+        screen -ls | grep gensyn | awk '{print $1}' | cut -d'.' -f1 | xargs kill
+    fi
+
+    # Создаем или очищаем лог-файл
+    touch "$HOME/rl-swarm/gensyn.log"
+    : > "$HOME/rl-swarm/gensyn.log"
+
+    # Перезапуск ноды в screen с указанной командой
     echo -e "${YELLOW}Перезапускаю ноду...${NC}"
-    launch_node
+    screen -S gensyn -d -m bash -c "cd $HOME/rl-swarm && python3 -m venv .venv && source .venv/bin/activate && ./run_rl_swarm.sh 2>&1 | tee $HOME/rl-swarm/gensyn.log"
+    echo -e "${GREEN}Нода запущена в screen 'gensyn'${NC}"
 }
 
 # Функция меню устранения неполадок
