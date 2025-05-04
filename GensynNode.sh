@@ -249,7 +249,7 @@ update_node() {
     screen -S gensyn -d -m bash -c "
         cd \$HOME && 
         rm -rf GensynNode && 
-        git clone https://github.com/ksydoruk1508/GensynNode.git && 
+        git clone https://github.com/zunxbt/rl-swarm.git && 
         cd \$HOME/rl-swarm && 
         source .venv/bin/activate && 
         pip install hivemind==1.1.11 && 
