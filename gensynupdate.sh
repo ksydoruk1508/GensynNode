@@ -36,6 +36,7 @@ if [ -f "$SWARM_DIR/swarm.pem" ]; then
             mv "$HOME_DIR/userApiKey.json" rl-swarm/modal-login/temp-data/ 2>/dev/null
             break
         elif [ "$choice" == "2" ]; then
+            echo -e "${BOLD}${YELLOW}[✓] Removing vagas
             echo -e "${BOLD}${YELLOW}[✓] Removing existing folder and starting fresh...${NC}"
             rm -rf "$SWARM_DIR"
             cd $HOME && git clone https://github.com/zunxbt/rl-swarm.git > /dev/null 2>&1
@@ -59,6 +60,25 @@ fi
 echo -e "${BOLD}${YELLOW}[✓] Setting up Python virtual environment...${NC}"
 python3 -m venv .venv
 . .venv/bin/activate
+
+# Определяем версию Python в виртуальной среде
+python_version=$(python --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2)
+site_packages_path="$SWARM_DIR/.venv/lib/python${python_version}/site-packages/transformers/trainer.py"
+
+# Проверяем существование файла trainer.py
+if [ -f "$site_packages_path" ]; then
+    echo -e "${BOLD}${YELLOW}[✓] Found trainer.py for Python ${python_version}. Performing string replacement...${NC}"
+    # Выполняем замену строки
+    sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('"'"'cpu'"'"', /g' "$site_packages_path"
+    if [ $? -eq 0 ]; then
+        echo -e "${BOLD}${GREEN}[✓] String replacement successfully completed in $site_packages_path${NC}"
+    else
+        echo -e "${BOLD}${RED}[✗] Error performing string replacement in $site_packages_path${NC}"
+        exit 1
+    fi
+else
+    echo -e "${BOLD}${YELLOW}[!] File $site_packages_path not found. Skipping string replacement.${NC}"
+fi
 
 echo -e "${BOLD}${YELLOW}[✓] Running rl-swarm...${NC}"
 ./run_rl_swarm.sh
