@@ -120,6 +120,7 @@ download_node() {
     python3 -m venv .venv
     source .venv/bin/activate
     pip install --upgrade pip
+    pip install hivemind==1.1.11
 
     # Настройка PyTorch
     read -p "На вашем сервере только CPU? (Y/N, если не знаете - Y): " answer
@@ -131,6 +132,18 @@ download_node() {
         echo "Настройка завершена."
     else
         echo "Оставляю настройки по умолчанию."
+    fi
+
+    # Определение версии Python
+    PYTHON_VERSION=$(python3 --version | grep -oP '\d+\.\d+' | head -1)
+    TRAINER_PY="/root/rl-swarm/.venv/lib/python${PYTHON_VERSION}/site-packages/transformers/trainer.py"
+
+    # Проверка существования файла trainer.py
+    if [ -f "$TRAINER_PY" ]; then
+        sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('\''cpu'\'', /g' "$TRAINER_PY"
+        echo "Замена в trainer.py выполнена для Python ${PYTHON_VERSION}."
+    else
+        echo -e "${RED}Файл $TRAINER_PY не найден. Проверьте установку transformers.${NC}"
     fi
 
     # Очистка старого screen
@@ -207,6 +220,9 @@ stop_node() {
     fi
 
     local pid
+    pid=$(netstat -tulnp | grep :3000 |間に
+
+    local pid
     pid=$(netstat -tulnp | grep :3000 | awk '{print $7}' | cut -d'/' -f1)
     [ -n "$pid" ] && sudo kill "$pid"
     echo "Нода остановлена."
@@ -237,8 +253,21 @@ update_node() {
         cd \$HOME && 
         rm -rf GensynNode && 
         git clone https://github.com/ksydoruk1508/GensynNode.git && 
-        chmod +x GensynNode/gensynupdate.sh && 
-        ./GensynNode/gensynupdate.sh 2>&1 | tee \$HOME/rl-swarm/gensyn.log"
+        cd \$HOME/rl-swarm && 
+        source .venv/bin/activate && 
+        pip install hivemind==1.1.11 && 
+        PYTHON_VERSION=\$(python3 --version | grep -oP '\d+\.\d+' | head -1) && 
+        TRAINER_PY=\"/root/rl-swarm/.venv/lib/python\${PYTHON_VERSION}/site-packages/transformers/trainer.py\" && 
+        if [ -f \"\$TRAINER_PY\" ]; then 
+            sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('\''cpu'\'', /g' \"\$TRAINER_PY\" && 
+            echo 'Замена в trainer.py выполнена для Python '\${PYTHON_VERSION}'.' || 
+            echo 'Ошибка при замене в trainer.py'; 
+        else 
+            echo 'Файл '\$TRAINER_PY' не найден. Проверьте установку transformers.'; 
+        fi && 
+        cd \$HOME/GensynNode && 
+        chmod +x gensynupdate.sh && 
+        ./gensynupdate.sh 2>&1 | tee \$HOME/rl-swarm/gensyn.log"
     
     echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/rl-swarm/gensyn.log${NC}"
 }
