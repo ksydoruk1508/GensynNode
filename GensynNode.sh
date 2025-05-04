@@ -137,10 +137,31 @@ launch_node() {
     cd "$HOME/rl-swarm" || exit 1
     source .venv/bin/activate
 
+    # Определяем версию Python в виртуальной среде
+    python_version=$(python --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2)
+    site_packages_path="$HOME/rl-swarm/.venv/lib/python${python_version}/site-packages/transformers/trainer.py"
+
+    # Проверяем существование файла trainer.py
+    if [ -f "$site_packages_path" ]; then
+        echo "Найден файл trainer.py для Python ${python_version}. Выполняю замену строки..."
+        # Выполняем замену строки
+        sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('"'"'cpu'"'"', /g' "$site_packages_path"
+        if [ $? -eq 0 ]; then
+            echo "Замена строки успешно выполнена в $site_packages_path"
+        else
+            echo "Ошибка при выполнении замены строки в $site_packages_path"
+            exit 1
+        fi
+    else
+        echo "Файл $site_packages_path не найден. Пропускаю замену строки."
+    fi
+
+    # Очистка существующего screen, если он есть
     if screen -list | grep -q "gensyn"; then
         screen -ls | grep gensyn | awk '{print $1}' | cut -d'.' -f1 | xargs kill
     fi
 
+    # Запуск ноды в новом screen
     screen -S gensyn -d -m bash -c "trap '' INT; bash run_rl_swarm.sh 2>&1 | tee $HOME/rl-swarm/gensyn.log"
     echo "Нода запущена в screen 'gensyn'."
 }
@@ -223,6 +244,7 @@ update_node() {
         rm -rf GensynNode && 
         git clone https://github.com/ksydoruk1508/GensynNode.git && 
         chmod +x GensynNode/gensynupdate.sh && 
+        ./ venta
         ./GensynNode/gensynupdate.sh 2>&1 | tee \$HOME/rl-swarm/gensyn.log"
     
     echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/rl-swarm/gensyn.log${NC}"
