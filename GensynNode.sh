@@ -39,22 +39,6 @@ EOF
     echo -e "${NC}"
 }
 
-# Проверка наличия curl и его установка, если отсутствует
-check_curl() {
-    if ! command -v curl &> /dev/null; then
-        echo -e "${BLUE}Устанавливаем curl...${NC}" >&2
-        sudo apt update && sudo apt install -y curl
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}curl успешно установлен.${NC}" >&2
-        else
-            echo -e "${RED}Не удалось установить curl! Выход...${NC}" >&2
-            exit 1
-        fi
-    else
-        echo -e "${GREEN}curl уже установлен.${NC}" >&2
-    fi
-}
-
 # Функция установки ноды
 download_node() {
     echo "Начинаю установку ноды..."
@@ -119,8 +103,8 @@ download_node() {
     cd rl-swarm || exit 1
     python3 -m venv .venv
     source .venv/bin/activate
-    pip install --upgrade pip
     pip install hivemind==1.1.11
+    pip install --upgrade pip
 
     # Настройка PyTorch
     read -p "На вашем сервере только CPU? (Y/N, если не знаете - Y): " answer
@@ -132,18 +116,6 @@ download_node() {
         echo "Настройка завершена."
     else
         echo "Оставляю настройки по умолчанию."
-    fi
-
-    # Определение версии Python
-    PYTHON_VERSION=$(python3 --version | grep -oP '\d+\.\d+' | head -1)
-    TRAINER_PY="/root/rl-swarm/.venv/lib/python${PYTHON_VERSION}/site-packages/transformers/trainer.py"
-
-    # Проверка существования файла trainer.py
-    if [ -f "$TRAINER_PY" ]; then
-        sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('\''cpu'\'', /g' "$TRAINER_PY"
-        echo "Замена в trainer.py выполнена для Python ${PYTHON_VERSION}."
-    else
-        echo -e "${RED}Файл $TRAINER_PY не найден. Проверьте установку transformers.${NC}"
     fi
 
     # Очистка старого screen
@@ -245,41 +217,13 @@ update_node() {
     # Остановка существующего screen gensyn
     pkill -f "SCREEN.*gensyn"
     
-    # Проверка существования виртуального окружения
-    if [ ! -d "$HOME/rl-swarm/.venv" ]; then
-        echo -e "${RED}Виртуальное окружение $HOME/rl-swarm/.venv не найдено. Пожалуйста, сначала установите ноду (опция 1).${NC}"
-        return 1
-    fi
-
     # Запуск нового screen и выполнение команд обновления
     screen -S gensyn -d -m bash -c "
-        set -e
-        echo 'Начало обновления...' >> \$HOME/rl-swarm/gensyn.log
-        cd \$HOME || { echo 'Ошибка: не удалось перейти в \$HOME' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
-        rm -rf GensynNode && echo 'Удалена старая директория GensynNode' >> \$HOME/rl-swarm/gensyn.log
-        git clone https://github.com/ksydoruk1508/GensynNode.git || { echo 'Ошибка клонирования репозитория GensynNode' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
-        cd \$HOME/rl-swarm || { echo 'Ошибка: не удалось перейти в \$HOME/rl-swarm' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
-        source .venv/bin/activate || { echo 'Ошибка активации виртуального окружения' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
-        pip install hivemind==1.1.11 >> \$HOME/rl-swarm/gensyn.log 2>&1 || { echo 'Ошибка установки hivemind==1.1.11' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
-        PYTHON_VERSION=\$(python3 --version | grep -oP '\d+\.\d+' | head -1) && echo 'Версия Python: '\${PYTHON_VERSION} >> \$HOME/rl-swarm/gensyn.log
-        TRAINER_PY=\"/root/rl-swarm/.venv/lib/python\${PYTHON_VERSION}/site-packages/transformers/trainer.py\"
-        if [ -f \"\$TRAINER_PY\" ]; then
-            sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('\''cpu'\'', /g' \"\$TRAINER_PY\" && 
-            echo 'Замена в trainer.py выполнена для Python '\${PYTHON_VERSION}'.' >> \$HOME/rl-swarm/gensyn.log || 
-            echo 'Ошибка при замене в trainer.py' >> \$HOME/rl-swarm/gensyn.log
-        else
-            echo 'Файл '\$TRAINER_PY' не найден. Проверьте установку transformers.' >> \$HOME/rl-swarm/gensyn.log
-        fi
-        cd \$HOME/GensynNode || { echo 'Ошибка: не удалось перейти в \$HOME/GensynNode' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
-        if [ -f gensynupdate.sh ]; then
-            chmod +x gensynupdate.sh
-            ./gensynupdate.sh >> \$HOME/rl-swarm/gensyn.log 2>&1 || { echo 'Ошибка выполнения gensynupdate.sh' >> \$HOME/rl-swarm/gensyn.log; exit 1; }
-        else
-            echo 'Файл gensynupdate.sh не найден в \$HOME/GensynNode' >> \$HOME/rl-swarm/gensyn.log
-            exit 1
-        fi
-        echo 'Обновление завершено.' >> \$HOME/rl-swarm/gensyn.log
-        bash"
+        cd \$HOME && 
+        rm -rf GensynNode && 
+        git clone https://github.com/ksydoruk1508/GensynNode.git && 
+        chmod +x GensynNode/gensynupdate.sh && 
+        ./GensynNode/gensynupdate.sh 2>&1 | tee \$HOME/rl-swarm/gensyn.log"
     
     echo -e "${GREEN}Обновление запущено в screen 'gensyn'. Логи доступны в \$HOME/rl-swarm/gensyn.log${NC}"
 }
