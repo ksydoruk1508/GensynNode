@@ -220,9 +220,6 @@ stop_node() {
     fi
 
     local pid
-    pid=$(netstat -tulnp | grep :3000 |間に
-
-    local pid
     pid=$(netstat -tulnp | grep :3000 | awk '{print $7}' | cut -d'/' -f1)
     [ -n "$pid" ] && sudo kill "$pid"
     echo "Нода остановлена."
