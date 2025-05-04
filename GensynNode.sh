@@ -225,9 +225,9 @@ delete_node() {
     echo "Нода удалена."
 }
 
-# Функция устранения неполадок
-troubleshoot() {
-    echo -e "${BLUE}Начинаю устранение неполадок...${NC}"
+# Функция исправления FutureWarning
+fix_future_warning() {
+    echo -e "${BLUE}Устраняю предупреждение FutureWarning: torch.cpu.amp.autocast...${NC}"
 
     # Остановка ноды
     echo -e "${YELLOW}Останавливаю ноду...${NC}"
@@ -263,6 +263,23 @@ troubleshoot() {
     # Перезапуск ноды
     echo -e "${YELLOW}Перезапускаю ноду...${NC}"
     launch_node
+}
+
+# Функция меню устранения неполадок
+troubleshoot_menu() {
+    while true; do
+        echo -e "${BLUE}Меню устранения неполадок:${NC}"
+        echo -e "${CYAN}1. Fix FutureWarning: torch.cpu.amp.autocast(args...) is deprecated${NC}"
+        echo -e "${CYAN}2. Вернуться в главное меню${NC}"
+        echo -e " "
+        read -p "Введите номер: " choice
+
+        case "$choice" in
+            1) fix_future_warning ;;
+            2) return ;;
+            *) echo "Неверный выбор. Введите число 1 или 2." ;;
+        esac
+    done
 }
 
 # Функция обновления ноды
@@ -316,7 +333,6 @@ update_node() {
             echo -e "${GREEN}Замена строки успешно выполнена в $site_packages_path${NC}"
         else
             echo -e "${RED}Ошибка при выполнении замены строки в $site_packages_path${NC}"
-            exit  W
             exit 1
         fi
     else
@@ -361,7 +377,7 @@ main_menu() {
             9) delete_node ;;
             10) update_node ;;
             11) exit 0 ;;
-            12) troubleshoot ;;
+            12) troubleshoot_menu ;;
             *) echo "Неверный выбор. Введите число от 1 до 12." ;;
         esac
     done
