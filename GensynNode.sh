@@ -225,6 +225,46 @@ delete_node() {
     echo "Нода удалена."
 }
 
+# Функция устранения неполадок
+troubleshoot() {
+    echo -e "${BLUE}Начинаю устранение неполадок...${NC}"
+
+    # Остановка ноды
+    echo -e "${YELLOW}Останавливаю ноду...${NC}"
+    stop_node
+
+    # Переход в директорию rl-swarm
+    cd "$HOME/rl-swarm" || { echo -e "${RED}Не удалось войти в директорию rl-swarm. Убедитесь, что нода установлена.${NC}"; return; }
+
+    # Активация виртуальной среды
+    source .venv/bin/activate
+
+    # Определяем версию Python в виртуальной среде
+    python_version=$(python --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2)
+    site_packages_path="$HOME/rl-swarm/.venv/lib/python${python_version}/site-packages/transformers/trainer.py"
+
+    # Проверяем существование файла trainer.py
+    if [ -f "$site_packages_path" ]; then
+        echo -e "${YELLOW}Найден файл trainer.py для Python ${python_version}. Выполняю замену строки...${NC}"
+        # Выполняем замену строки
+        sed -i 's/torch\.cpu\.amp\.autocast(/torch.amp.autocast('"'"'cpu'"'"', /g' "$site_packages_path"
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}Замена строки успешно выполнена в $site_packages_path${NC}"
+        else
+            echo -e "${RED}Ошибка при выполнении замены строки в $site_packages_path${NC}"
+            return
+        fi
+    else
+        echo -e "${RED}Файл $site_packages_path не найден. Убедитесь, что пакет transformers установлен в виртуальной среде.${NC}"
+        echo -e "${YELLOW}Попробуйте запустить ноду, чтобы установить зависимости, и повторите попытку.${NC}"
+        return
+    fi
+
+    # Перезапуск ноды
+    echo -e "${YELLOW}Перезапускаю ноду...${NC}"
+    launch_node
+}
+
 # Функция обновления ноды
 update_node() {
     echo -e "${BLUE}Начинаю обновление ноды...${NC}"
@@ -276,6 +316,7 @@ update_node() {
             echo -e "${GREEN}Замена строки успешно выполнена в $site_packages_path${NC}"
         else
             echo -e "${RED}Ошибка при выполнении замены строки в $site_packages_path${NC}"
+            exit  W
             exit 1
         fi
     else
@@ -304,6 +345,7 @@ main_menu() {
         echo -e "${CYAN}9. Удалить ноду${NC}"
         echo -e "${CYAN}10. Обновить ноду (v. 0.4.2)${NC}"
         echo -e "${CYAN}11. Выйти из скрипта${NC}"
+        echo -e "${CYAN}12. Устранить неполадки${NC}"
         echo -e " "
         read -p "Введите номер: " choice
 
@@ -319,7 +361,8 @@ main_menu() {
             9) delete_node ;;
             10) update_node ;;
             11) exit 0 ;;
-            *) echo "Неверный выбор. Введите число от 1 до 11." ;;
+            12) troubleshoot ;;
+            *) echo "Неверный выбор. Введите число от 1 до 12." ;;
         esac
     done
 }
