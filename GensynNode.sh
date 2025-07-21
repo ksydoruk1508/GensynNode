@@ -81,7 +81,7 @@ run_node() {
 while true; do
     echo -e "${CYAN}"
     echo "======================"
-    echo "    RL-SWARM MENU3     "
+    echo "    RL-SWARM MENU4     "
     echo "======================"
     echo -e "${NC}"
     echo "1. Установить ноду"
