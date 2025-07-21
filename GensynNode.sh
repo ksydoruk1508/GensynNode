@@ -15,7 +15,7 @@ install_node() {
 
     sudo apt install -y screen curl iptables build-essential git wget lz4 jq make gcc nano \
     automake autoconf tmux htop nvme-cli libgbm1 pkg-config libssl-dev libleveldb-dev tar \
-    clang bsdmainutils ncdu unzip libleveldb-dev python3-venv python3-pip python3-dev
+    clang bsdmainutils ncdu unzip libleveldb-dev python3-venv python3-pip python3-dev localtunnel
 
     echo -e "${YELLOW}Добавление Yarn и установка Node.js 22...${NC}"
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/yarnkey.gpg
@@ -31,7 +31,7 @@ install_node() {
     echo -e "${GREEN}Установка завершена.${NC}"
 }
 
-# Функция запуска ноды
+# Функция запуска ноды и отображения логов
 run_node() {
     echo -e "${YELLOW}Запуск ноды...${NC}"
     cd "$HOME/rl-swarm" || { echo "Папка rl-swarm не найдена!"; exit 1; }
@@ -40,7 +40,10 @@ run_node() {
     source .venv/bin/activate
 
     nohup bash -c "source .venv/bin/activate && ./run_rl_swarm.sh" > run.log 2>&1 &
-    echo -e "${GREEN}Нода запущена через nohup. Логи: ./run.log${NC}"
+
+    echo -e "${GREEN}Нода запущена через nohup. Открываю логи...${NC}"
+    sleep 2
+    tail -n 50 -f run.log
 }
 
 # Меню
@@ -51,7 +54,7 @@ while true; do
     echo "======================"
     echo -e "${NC}"
     echo "1. Установить ноду"
-    echo "2. Запустить ноду"
+    echo "2. Запустить ноду и смотреть логи"
     echo "3. Выйти"
     echo ""
     read -p "Выберите действие [1-3]: " choice
