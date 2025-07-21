@@ -13,9 +13,9 @@ install_node() {
     echo -e "${YELLOW}Обновление системы и установка зависимостей...${NC}"
     sudo apt update && sudo apt upgrade -y
 
-    sudo apt install -y screen curl iptables build-essential git wget lz4 jq make gcc nano \
+    sudo apt install -y screen localtunnel curl iptables build-essential git wget lz4 jq make gcc nano \
     automake autoconf tmux htop nvme-cli libgbm1 pkg-config libssl-dev libleveldb-dev tar \
-    clang bsdmainutils ncdu unzip libleveldb-dev python3-venv python3-pip python3-dev localtunnel
+    clang bsdmainutils ncdu unzip libleveldb-dev python3-venv python3-pip python3-dev
 
     echo -e "${YELLOW}Добавление Yarn и установка Node.js 22...${NC}"
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/yarnkey.gpg
