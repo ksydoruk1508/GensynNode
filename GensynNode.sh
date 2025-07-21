@@ -40,18 +40,47 @@ run_node() {
     python3 -m venv .venv
     source .venv/bin/activate
 
+    # Запускаем ноду в фоне и следим за логом
     nohup bash -c "source .venv/bin/activate && ./run_rl_swarm.sh" > run.log 2>&1 &
 
-    echo -e "${GREEN}Нода запущена через nohup. Открываю логи...${NC}"
+    echo -e "${GREEN}Нода запущена через nohup. Следим за логом...${NC}"
     sleep 2
-    tail -n 50 -f run.log
+
+    # Постоянно читаем лог и реагируем на строку
+    tail -n 20 -f run.log | while read -r line; do
+        echo "$line"
+
+        if echo "$line" | grep -q "Failed to open http://localhost:3000"; then
+            echo -e "${YELLOW}Обнаружено: Failed to open http://localhost:3000${NC}"
+            echo -e "${CYAN}Запускаю LocalTunnel на порту 3000...${NC}"
+            nohup lt --port 3000 > lt.log 2>&1 &
+
+            sleep 2  # Дать время tunnel'у запуститься
+            LT_URL=$(grep -o 'https://[^ ]*\.loca\.lt' lt.log | head -n 1)
+
+            if [ -z "$LT_URL" ]; then
+                echo -e "${YELLOW}Ожидание генерации ссылки LocalTunnel...${NC}"
+                sleep 5
+                LT_URL=$(grep -o 'https://[^ ]*\.loca\.lt' lt.log | head -n 1)
+            fi
+
+            echo -e "${GREEN}LocalTunnel запущен!${NC}"
+            echo -e "${CYAN}Перейдите по ссылке, чтобы авторизоваться: ${LT_URL}${NC}"
+            echo ""
+            echo -e "1. Перейдите по ссылке;"
+            echo -e "2. Введите в поле пароля IP устройства;"
+            echo -e "3. Нажмите Login;"
+            echo -e "4. Авторизуйтесь с помощью вашего email;"
+            echo ""
+        fi
+    done
 }
 
 # Меню
 while true; do
     echo -e "${CYAN}"
     echo "======================"
-    echo "    RL-SWARM MENU2     "
+    echo "    RL-SWARM MENU3     "
     echo "======================"
     echo -e "${NC}"
     echo "1. Установить ноду"
