@@ -40,40 +40,44 @@ run_node() {
     python3 -m venv .venv
     source .venv/bin/activate
 
-    # Запускаем ноду в фоне и следим за логом
+    echo -e "${YELLOW}Нода будет запущена в фоне через nohup. Ждём, пока запустится...${NC}"
     nohup bash -c "source .venv/bin/activate && ./run_rl_swarm.sh" > run.log 2>&1 &
 
-    echo -e "${GREEN}Нода запущена через nohup. Следим за логом...${NC}"
-    sleep 2
+    # Ожидаем появление ошибки "Failed to open"
+    echo -e "${YELLOW}Ожидаем сигнал для запуска LocalTunnel...${NC}"
+    while true; do
+        if grep -q "Failed to open http://localhost:3000" run.log; then
+            echo -e "${GREEN}Обнаружено: Failed to open http://localhost:3000${NC}"
+            echo -e "${YELLOW}Запускаю LocalTunnel на порту 3000...${NC}"
 
-    # Постоянно читаем лог и реагируем на строку
-    tail -n 20 -f run.log | while read -r line; do
-        echo "$line"
+            # Запуск LocalTunnel в фоне и перехват URL
+            LT_URL=$(nohup lt --port 3000 2>&1 | tee lt_output.log | grep -m1 -o 'https://[^ ]*') &
+            sleep 5  # Даем время LocalTunnel
 
-        if echo "$line" | grep -q "Failed to open http://localhost:3000"; then
-            echo -e "${YELLOW}Обнаружено: Failed to open http://localhost:3000${NC}"
-            echo -e "${CYAN}Запускаю LocalTunnel на порту 3000...${NC}"
-            nohup lt --port 3000 > lt.log 2>&1 &
+            # Повторная попытка, если сразу не получилось
+            for i in {1..5}; do
+                LT_URL=$(grep -o 'https://[^ ]*\.loca\.lt' lt_output.log | head -n 1)
+                [ -n "$LT_URL" ] && break
+                sleep 1
+            done
 
-            sleep 2  # Дать время tunnel'у запуститься
-            LT_URL=$(grep -o 'https://[^ ]*\.loca\.lt' lt.log | head -n 1)
+            # Получение IP
+            DEVICE_IP=$(curl -s ifconfig.me)
 
-            if [ -z "$LT_URL" ]; then
-                echo -e "${YELLOW}Ожидание генерации ссылки LocalTunnel...${NC}"
-                sleep 5
-                LT_URL=$(grep -o 'https://[^ ]*\.loca\.lt' lt.log | head -n 1)
-            fi
-
-            echo -e "${GREEN}LocalTunnel запущен!${NC}"
-            echo -e "${CYAN}Перейдите по ссылке, чтобы авторизоваться: ${LT_URL}${NC}"
-            echo ""
-            echo -e "1. Перейдите по ссылке;"
-            echo -e "2. Введите в поле пароля IP устройства;"
-            echo -e "3. Нажмите Login;"
-            echo -e "4. Авторизуйтесь с помощью вашего email;"
-            echo ""
+            echo -e "\n${GREEN}LocalTunnel запущен!${NC}"
+            echo -e "${CYAN}1. Перейдите по ссылке, чтобы авторизоваться: ${LT_URL}${NC}"
+            echo -e "${CYAN}2. Введите в поле пароля IP устройства: ${DEVICE_IP}${NC}"
+            echo -e "${CYAN}3. Нажмите Login;${NC}"
+            echo -e "${CYAN}4. Авторизуйтесь с помощью вашего e-mail;${NC}\n"
+            break
         fi
+        sleep 1
     done
+
+    # Открытие логов
+    echo -e "${YELLOW}Открываю логи ноды...${NC}"
+    sleep 2
+    tail -n 50 -f run.log
 }
 
 # Меню
