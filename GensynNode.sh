@@ -16,6 +16,7 @@ install_node() {
     sudo apt install -y screen curl iptables build-essential git wget lz4 jq make gcc nano \
     automake autoconf tmux htop nvme-cli libgbm1 pkg-config libssl-dev libleveldb-dev tar \
     clang bsdmainutils ncdu unzip libleveldb-dev python3-venv python3-pip python3-dev
+    sudo npm install -g localtunnel
 
     echo -e "${YELLOW}Добавление Yarn и установка Node.js 22...${NC}"
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/yarnkey.gpg
@@ -25,7 +26,6 @@ install_node() {
 
     echo -e "${GREEN}Node.js версия: $(node -v)${NC}"
     echo -e "${GREEN}Yarn версия: $(yarn -v)${NC}"
-    sudo npm install -g localtunnel
 
     echo -e "${YELLOW}Клонируем репозиторий rl-swarm...${NC}"
     rm -rf rl-swarm && git clone https://github.com/gensyn-ai/rl-swarm/ && cd rl-swarm
