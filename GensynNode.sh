@@ -41,40 +41,37 @@ run_node() {
     source .venv/bin/activate
 
     echo -e "${YELLOW}Нода будет запущена в фоне через nohup. Ждём, пока запустится...${NC}"
+    # Запуск скрипта run_rl_swarm.sh и логирование в run.log
     nohup bash -c "source .venv/bin/activate && ./run_rl_swarm.sh" > run.log 2>&1 &
 
-    # Ожидаем появление ошибки "Failed to open"
-    echo -e "${YELLOW}Ожидаем сигнал для запуска LocalTunnel...${NC}"
-    while true; do
-        if grep -q "Failed to open http://localhost:3000" run.log; then
-            echo -e "${GREEN}Обнаружено: Failed to open http://localhost:3000${NC}"
-            echo -e "${YELLOW}Запускаю LocalTunnel на порту 3000...${NC}"
+    echo -e "${YELLOW}Ожидаем сигнал в логах для запуска LocalTunnel...${NC}"
 
-            # Запуск LocalTunnel в фоне и перехват URL
-            LT_URL=$(nohup lt --port 3000 2>&1 | tee lt_output.log | grep -m1 -o 'https://[^ ]*') &
-            sleep 5  # Даем время LocalTunnel
-
-            # Повторная попытка, если сразу не получилось
-            for i in {1..5}; do
-                LT_URL=$(grep -o 'https://[^ ]*\.loca\.lt' lt_output.log | head -n 1)
-                [ -n "$LT_URL" ] && break
-                sleep 1
-            done
-
-            # Получение IP
-            DEVICE_IP=$(curl -s ifconfig.me)
-
-            echo -e "\n${GREEN}LocalTunnel запущен!${NC}"
-            echo -e "${CYAN}1. Перейдите по ссылке, чтобы авторизоваться: ${LT_URL}${NC}"
-            echo -e "${CYAN}2. Введите в поле пароля IP устройства: ${DEVICE_IP}${NC}"
-            echo -e "${CYAN}3. Нажмите Login;${NC}"
-            echo -e "${CYAN}4. Авторизуйтесь с помощью вашего e-mail;${NC}\n"
-            break
-        fi
+    # Ждём появления в логах строки о невозможности открыть localhost:3000
+    while ! grep -q "Failed to open http://localhost:3000" run.log; do
         sleep 1
     done
 
-    # Открытие логов
+    echo -e "${GREEN}Обнаружено: Failed to open http://localhost:3000${NC}"
+    echo -e "${YELLOW}Запускаю LocalTunnel на порту 3000...${NC}"
+
+    # Запуск LocalTunnel и извлечение ссылки
+    nohup lt --port 3000 > lt_output.log 2>&1 &
+    sleep 5
+
+    for i in {1..10}; do
+        LT_URL=$(grep -o 'https://[^ ]*\.loca\.lt' lt_output.log | head -n 1)
+        if [[ -n "$LT_URL" ]]; then break; fi
+        sleep 1
+    done
+
+    DEVICE_IP=$(curl -s ifconfig.me)
+
+    echo -e "\n${GREEN}LocalTunnel запущен!${NC}"
+    echo -e "${CYAN}1. Перейдите по ссылке, чтобы авторизоваться: ${LT_URL}${NC}"
+    echo -e "${CYAN}2. Введите в поле пароля IP устройства: ${DEVICE_IP}${NC}"
+    echo -e "${CYAN}3. Нажмите Login;${NC}"
+    echo -e "${CYAN}4. Авторизуйтесь с помощью вашего e-mail;${NC}\n"
+
     echo -e "${YELLOW}Открываю логи ноды...${NC}"
     sleep 2
     tail -n 50 -f run.log
