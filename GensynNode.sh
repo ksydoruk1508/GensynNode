@@ -27,8 +27,7 @@ install_node() {
     echo -e "${GREEN}Yarn версия: $(yarn -v)${NC}"
 
     echo -e "${YELLOW}Клонируем репозиторий rl-swarm...${NC}"
-    rm -rf rl-swarm
-    git clone https://github.com/gensyn-ai/rl-swarm.git
+    rm -rf rl-swarm && git clone https://github.com/gensyn-ai/rl-swarm/ && cd rl-swarm
     echo -e "${GREEN}Установка завершена.${NC}"
 }
 
