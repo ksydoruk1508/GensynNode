@@ -2,7 +2,7 @@
 
 # Переменные для проверки версии
 SCRIPT_NAME="Gensyn"
-SCRIPT_VERSION="1.1.0"
+SCRIPT_VERSION="1.1.1"
 VERSIONS_FILE_URL="https://raw.githubusercontent.com/k2wGG/scripts/main/versions.txt"
 SCRIPT_FILE_URL="https://raw.githubusercontent.com/k2wGG/scripts/main/Gensyn.sh"
 
