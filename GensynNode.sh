@@ -91,7 +91,7 @@ start_gensyn_screen() {
         cd ~/rl-swarm || exit 1
         python3 -m venv .venv
         source .venv/bin/activate
-        ./run_rl_swarm.sh
+        exec ./run_rl_swarm.sh
     '
     print_ok "Узел запущен в screen-сессии 'gensyn'. Введите 'screen -r gensyn' для подключения."
 }
