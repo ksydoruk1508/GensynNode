@@ -221,18 +221,18 @@ main_menu() {
         clear
         display_logo
         check_script_version
-        echo -e "\n${clrBold}Выберите действие:${clrReset}"
-        echo "1) Установить зависимости"
-        echo "2) Клонировать RL Swarm"
-        echo "3) Запустить узел Gensyn в screen (название: gensyn)"
-        echo "4) Обновить RL Swarm"
-        echo "5) Проверка текущей версии ноды"
-        echo "6) Удалить RL Swarm (сохранить приватник)"
-        echo "7) Восстановить swarm.pem из бэкапа"
-        echo "8) Запустить HTTPS-туннель Cloudflared (screen: cftunnel)"
-        echo "9) Управление файлом подкачки"
-        echo "10) Выход"
-        read -rp "Введите номер: " choice
+        echo -e "\n${clrBold}Выберите действие:${clrReset} / Select an action:"
+        echo "1) Установить зависимости / Install dependencies"
+        echo "2) Клонировать RL Swarm / Clone RL Swarm"
+        echo "3) Запустить узел Gensyn в screen (название: gensyn) / Run Gensyn node in screen (name: gensyn)"
+        echo "4) Обновить RL Swarm / Update RL Swarm"
+        echo "5) Проверка текущей версии ноды / Check current node version"
+        echo "6) Удалить RL Swarm (сохранить приватник) / Remove RL Swarm (keep private key)"
+        echo "7) Восстановить swarm.pem из бэкапа / Restore swarm.pem from backup"
+        echo "8) Запустить HTTPS-туннель Cloudflared (screen: cftunnel) / Start HTTPS tunnel Cloudflared (screen: cftunnel)"
+        echo "9) Управление файлом подкачки / Swap file management"
+        echo "10) Выход / Exit"
+        read -rp "Введите номер / Enter a number: " choice
         case $choice in
             1) system_update_and_install ;;
             2) clone_repo ;;
