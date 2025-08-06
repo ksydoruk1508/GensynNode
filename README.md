@@ -28,7 +28,7 @@ This script is designed to make node installation and management simple, even fo
 
 Copy and paste into your terminal:
 
-```bash
+
 wget -q -O GensynNode.sh https://raw.githubusercontent.com/ksydoruk1508/GensynNode/main/GensynNode.sh && sudo chmod +x GensynNode.sh && ./GensynNode.sh
 ````
 
@@ -175,7 +175,7 @@ ________________________________________________________________________________
 
 Скопируйте и вставьте в терминал:
 
-```bash
+
 wget -q -O GensynNode.sh https://raw.githubusercontent.com/ksydoruk1508/GensynNode/main/GensynNode.sh && sudo chmod +x GensynNode.sh && ./GensynNode.sh
 ````
 
