@@ -1,4 +1,3 @@
-````markdown
 # Gensyn RL Swarm Node Installer
 
 Automated Bash script for installing, launching, and managing the RL Swarm Gensyn node on Ubuntu.  
@@ -28,7 +27,7 @@ This script is designed to make node installation and management simple, even fo
 
 Copy and paste into your terminal:
 
-
+````markdown
 wget -q -O GensynNode.sh https://raw.githubusercontent.com/ksydoruk1508/GensynNode/main/GensynNode.sh && sudo chmod +x GensynNode.sh && ./GensynNode.sh
 ````
 
@@ -145,7 +144,7 @@ ________________________________________________________________________________
 
 ---
 
-````markdown
+
 # Gensyn RL Swarm Node Installer
 
 Автоматизированный Bash-скрипт для установки, запуска и управления RL Swarm нодой Gensyn на Ubuntu.  
@@ -175,7 +174,7 @@ ________________________________________________________________________________
 
 Скопируйте и вставьте в терминал:
 
-
+````markdown
 wget -q -O GensynNode.sh https://raw.githubusercontent.com/ksydoruk1508/GensynNode/main/GensynNode.sh && sudo chmod +x GensynNode.sh && ./GensynNode.sh
 ````
 
