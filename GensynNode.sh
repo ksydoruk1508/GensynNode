@@ -147,25 +147,86 @@ restore_swarm_pem() {
 
 setup_cloudflared_screen() {
     print_info "Установка и запуск Cloudflared для HTTPS-туннеля на порт 3000..."
-    sudo apt install ufw -y
-    sudo ufw allow 22
+
+    # Базовые пакеты
+    sudo apt-get update -y
+    sudo apt-get install -y ufw screen wget ca-certificates
+
+    # UFW правила
+    sudo ufw allow 22/tcp
     sudo ufw allow 3000/tcp
     sudo ufw --force enable
 
-    if ! command -v cloudflared &> /dev/null; then
-        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb  
-        sudo dpkg -i cloudflared-linux-amd64.deb
-        rm -f cloudflared-linux-amd64.deb
+    # Определяем архитектуру для выбора правильного .deb
+    local ARCH
+    ARCH="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
+
+    local DEB_URL=""
+    case "$ARCH" in
+        amd64)
+            DEB_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb"
+            ;;
+        arm64)
+            DEB_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb"
+            ;;
+        *)
+            print_err "Неподдерживаемая архитектура: ${ARCH}. Поддерживаются amd64 и arm64."
+            return 1
+            ;;
+    esac
+
+    # Установка cloudflared, если не стоит
+    if ! command -v cloudflared >/dev/null 2>&1; then
+        print_info "cloudflared не найден. Скачиваю пакет для ${ARCH}..."
+        local TMP_DEB="/tmp/cloudflared-${ARCH}.deb"
+        if ! wget -q -O "${TMP_DEB}" "${DEB_URL}"; then
+            print_err "Не удалось скачать cloudflared для ${ARCH}."
+            return 1
+        fi
+
+        print_info "Устанавливаю cloudflared..."
+        if ! sudo dpkg -i "${TMP_DEB}" >/dev/null 2>&1; then
+            # подтянуть зависимости при необходимости
+            sudo apt-get -f install -y
+            # повторить установку
+            sudo dpkg -i "${TMP_DEB}" >/dev/null 2>&1 || {
+                print_err "Не удалось установить cloudflared для ${ARCH}."
+                rm -f "${TMP_DEB}"
+                return 1
+            }
+        fi
+        rm -f "${TMP_DEB}"
     fi
 
-    if screen -list | grep -q "cftunnel"; then
-        print_warn "Screen-сессия 'cftunnel' уже существует! Используйте 'screen -r cftunnel' для входа."
-        return
+    # Финальная проверка наличия бинаря
+    if ! command -v cloudflared >/dev/null 2>&1; then
+        print_err "cloudflared не найден после установки. Прерываю."
+        return 1
     fi
+
+    # Не создаём второй screen, если уже есть
+    if screen -list | grep -q "[.]cftunnel"; then
+        print_warn "Screen-сессия 'cftunnel' уже существует! Используйте 'screen -r cftunnel' для входа."
+        return 0
+    fi
+
+    # Папка для логов
+    sudo mkdir -p /var/log
+    local LOG_FILE="/var/log/cloudflared-screen.log"
 
     print_info "Запускаю Cloudflared tunnel в screen-сессии 'cftunnel'..."
-    screen -dmS cftunnel bash -c 'cloudflared tunnel --url http://localhost:3000'
-    print_ok "Cloudflared-туннель запущен в screen 'cftunnel'. Ссылку ищите в выводе ('screen -r cftunnel')."
+    # -dmS: detached, named session; bash -lc чтобы подхватить PATH
+    screen -dmS cftunnel bash -lc "cloudflared tunnel --no-autoupdate --url http://localhost:3000 2>&1 | tee -a ${LOG_FILE}"
+
+    # Небольшая задержка и проверка процесса
+    sleep 1
+    if pgrep -af cloudflared >/dev/null 2>&1; then
+        print_ok "Cloudflared-туннель запущен в screen 'cftunnel'. Ссылку смотри в выводе: 'screen -r cftunnel'. Логи: ${LOG_FILE}"
+        return 0
+    else
+        print_err "Не удалось запустить cloudflared в screen. Проверь логи: ${LOG_FILE} и 'screen -r cftunnel'."
+        return 1
+    fi
 }
 
 swap_menu() {
