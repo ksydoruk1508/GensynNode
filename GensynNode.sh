@@ -104,6 +104,10 @@ update_node() {
     print_info "Обновление RL Swarm..."
     if [ -d "$HOME/rl-swarm" ]; then
         cd "$HOME/rl-swarm" || exit 1
+        git switch main
+        git reset --hard
+        git clean -fd
+        git pull origin main
         git pull
         print_ok "Репозиторий обновлён."
     else
