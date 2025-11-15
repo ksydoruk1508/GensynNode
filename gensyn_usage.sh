@@ -8,7 +8,7 @@ REPO_DIR="${REPO_DIR:-${HOME}/rl-swarm}"
 VENV_DIR="${VENV_DIR:-${REPO_DIR}/.venv}"
 SCREEN_NAME="${SCREEN_NAME:-gensyn}"
 
-# ---------- Цвета (как на скрине) ----------
+# ---------- Цвета ----------
 clrGreen=$'\033[0;32m'   # версии, OK/Running
 clrCyan=$'\033[0;36m'    # ключи/метки (BASE_DIR и т.п.)
 clrBlue=$'\033[0;34m'    # значения путей/URL/числа
@@ -26,64 +26,101 @@ hum(){ awk -v b="${1:-0}" '
   function H(x){u[0]="B";u[1]="KB";u[2]="MB";u[3]="GB";u[4]="TB";i=0;while(x>=1024&&i<4){x/=1024;i++}printf "%.2f%s",x,u[i]}
   BEGIN{H(b)}
 '; }
+
 b_of(){ [[ -e "$1" ]] && du -sb "$1" 2>/dev/null | awk '{print $1}' || echo 0; }
+
 whichp(){ command -v "$1" 2>/dev/null || true; }
-fsize(){ local p; p="$(whichp "$1")"; [[ -n "$p" && -f "$p" ]] && stat -c '%s' "$p" 2>/dev/null || echo 0; }
-fmt_seconds(){ local s="${1:-0}"; printf "%dd %02d:%02d:%02d" "$((s/86400))" "$((s%86400/3600))" "$((s%3600/60))" "$((s%60))"; }
 
-get_screen_pid(){ screen -list 2>/dev/null | awk -v n=".${SCREEN_NAME}" '$0~n{ s=$1; sub(/\..*/,"",s); print s; exit }'; }
-
-collect_descendants_bfs(){
-  local root="${1-}"; [[ -n "$root" ]] || return
-  local q=("$root") seen=()
-  while ((${#q[@]})); do
-    local p="${q[0]}"; q=("${q[@]:1}")
-    [[ " ${seen[*]} " == *" $p "* ]] || {
-      seen+=("$p")
-      mapfile -t kids < <(ps -o pid= --ppid "$p" 2>/dev/null | awk 'NF')
-      ((${#kids[@]})) && q+=("${kids[@]}")
-    }
-  done
-  printf "%s\n" "${seen[@]}" | sort -u
+fsize(){
+  local p
+  p="$(whichp "$1")"
+  [[ -n "$p" && -f "$p" ]] && stat -c '%s' "$p" 2>/dev/null || echo 0
 }
 
-# ---------- Метрики процесса внутри screen ----------
-RUNNING=false; UPTIME_HUMAN="-"; CPU_TOTAL="0.00"; RAM_TOTAL=0; MEM_PCT="0.00"
-calc_metrics(){
-  local spid; spid="$(get_screen_pid || true)"
-  [[ -n "${spid:-}" ]] || return
-  mapfile -t ALL < <(collect_descendants_bfs "$spid")
-  ((${#ALL[@]})) || return
+fmt_seconds(){
+  local s="${1:-0}"
+  printf "%dd %02d:%02d:%02d" "$((s/86400))" "$((s%86400/3600))" "$((s%3600/60))" "$((s%60))"
+}
 
-  local CPU_SUM=0.00 RSS_BYTES=0 ET_MAX=0 keep_any=false
-  while read -r pid comm et rss_k pcpu; do
-    [[ -z "$pid" ]] && continue
-    [[ "$comm" =~ ^(python|python3|wandb-core|gpu_stats)$ ]] || continue
-    keep_any=true
-    (( RSS_BYTES += rss_k * 1024 ))
-    (( et > ET_MAX )) && ET_MAX="$et"
-    CPU_SUM=$(awk -v a="$CPU_SUM" -v b="$pcpu" 'BEGIN{printf "%.2f", a+b}')
-  done < <(ps -o pid=,comm=,etimes=,rss=,pcpu= -p "$(printf "%s," "${ALL[@]}" | sed 's/,$//')" 2>/dev/null)
-
-  $keep_any || return
-  RUNNING=true
-  CPU_TOTAL="$CPU_SUM"
-  RAM_TOTAL="$RSS_BYTES"
-  UPTIME_HUMAN="$(fmt_seconds "$ET_MAX")"
-  MEM_PCT=$(awk -v r="$RSS_BYTES" -v t="$(awk '/MemTotal/{print $2*1024}' /proc/meminfo)" 'BEGIN{ if(t>0) printf "%.2f",(r*100)/t; else print "0.00"}')
+get_screen_pid(){
+  screen -list 2>/dev/null | awk -v n=".${SCREEN_NAME}" '$0~n{ s=$1; sub(/\..*/,"",s); print s; exit }'
 }
 
 # ---------- Порты ----------
+port_listening(){
+  local p="$1"
+  ss -lnt 2>/dev/null \
+    | awk '{print $4}' \
+    | awk -F':' '{print $NF}' \
+    | grep -qx "$p"
+}
+
 port_state(){
   local p="$1"
-  if ss -lnt 2>/dev/null | awk '{print $4}' | awk -F':' '{print $NF}' | grep -qx "$p"; then
+  if port_listening "$p"; then
     echo -e "${clrGreen}listening${clrReset}"
   else
     echo -e "${clrRed}-${clrReset}"
   fi
 }
 
-# ---------- Блоки ----------
+# ---------- Метрики ----------
+RUNNING=false
+UPTIME_HUMAN="-"
+CPU_TOTAL="0.00"
+RAM_TOTAL=0
+MEM_PCT="0.00"
+
+calc_metrics(){
+  local spid
+  spid="$(get_screen_pid || true)"
+
+  local have_screen=false
+  [[ -n "${spid:-}" ]] && have_screen=true
+
+  # считаем, что нода жива, если есть screen или слушаются порты
+  if $have_screen || port_listening 3000 || port_listening 8080; then
+    RUNNING=true
+  else
+    RUNNING=false
+  fi
+
+  # метрики считаем по процессам, в чьих args встречается путь к репо
+  local CPU_SUM="0.00" RSS_BYTES=0 ET_MAX=0 keep_any=false
+
+  # ps может глючить, поэтому всё через || true
+  while read -r pid comm et rss_k pcpu; do
+    [[ -z "$pid" ]] && continue
+    keep_any=true
+    (( RSS_BYTES += rss_k * 1024 ))
+    (( et > ET_MAX )) && ET_MAX="$et"
+    CPU_SUM=$(awk -v a="$CPU_SUM" -v b="$pcpu" 'BEGIN{printf "%.2f", a+b}')
+  done < <(
+    ps -eo pid=,comm=,etimes=,rss=,pcpu=,args= 2>/dev/null \
+      | awk -v repo="$REPO_DIR" '$0 ~ repo {print $1, $2, $3, $4, $5}' \
+      || true
+  )
+
+  $keep_any || return 0
+
+  RUNNING=true
+  CPU_TOTAL="$CPU_SUM"
+  RAM_TOTAL="$RSS_BYTES"
+  UPTIME_HUMAN="$(fmt_seconds "$ET_MAX")"
+
+  MEM_PCT=$(
+    awk -v r="$RSS_BYTES" '
+      /MemTotal/{
+        t=$2*1024
+        if(t>0) printf "%.2f",(r*100)/t
+        else print "0.00"
+        exit
+      }
+    ' /proc/meminfo 2>/dev/null || echo "0.00"
+  )
+}
+
+# ---------- Блоки вывода ----------
 line_kv(){ # key, value
   echo -e "  ${clrCyan}${1}${clrReset}:  ${clrBlue}${2}${clrReset}"
 }
@@ -118,7 +155,7 @@ print_dashboard(){
   echo -e "  ${clrCyan}8080/tcp${clrReset} -> $(port_state 8080)"
   hr
 
-  # Инструменты (версия зелёная, путь/размер синие)
+  # Инструменты
   local py_ver node_ver yarn_ver cfd_ver
   py_ver="$(python3 -V 2>/dev/null || echo "-")"
   node_ver="$(node -v 2>/dev/null || echo "-")"
@@ -127,12 +164,12 @@ print_dashboard(){
 
   echo -e "${clrBold}Toolchain${clrReset}"
   hr
-  print_tool "python (venv)" "${py_ver}" "${VENV_DIR}" "$(hum "$(b_of "$VENV_DIR")")"
-  print_tool "node"           "${node_ver}" "$(whichp node)"          "$(hum "$(fsize node)")"
-  print_tool "yarn (corepack)" "${yarn_ver}" "$(whichp yarn)"         "$(hum "$(fsize yarn)")"
-  print_tool "cloudflared"    "${cfd_ver}"  "$(whichp cloudflared)"   "$(hum "$(fsize cloudflared)")"
+  print_tool "python (venv)"  "${py_ver}" "${VENV_DIR}"          "$(hum "$(b_of "$VENV_DIR")")"
+  print_tool "node"           "${node_ver}" "$(whichp node)"     "$(hum "$(fsize node)")"
+  print_tool "yarn (corepack)" "${yarn_ver}" "$(whichp yarn)"    "$(hum "$(fsize yarn)")"
+  print_tool "cloudflared"    "${cfd_ver}"  "$(whichp cloudflared)" "$(hum "$(fsize cloudflared)")"
   print_tool "screen"         "$(screen --version | head -1)" "$(whichp screen)" "$(hum "$(fsize screen)")"
-  print_tool "git"            "$(git --version)" "$(whichp git)"       "$(hum "$(fsize git)")"
+  print_tool "git"            "$(git --version)" "$(whichp git)" "$(hum "$(fsize git)")"
 
   hr
   echo -e "${clrMag}${clrBold}ИТОГО по Gensyn${clrReset}"
